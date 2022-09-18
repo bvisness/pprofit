@@ -2,8 +2,150 @@
 
 <head>
     <title>pprofit!</title>
+
+    <style>
+        .dn {
+            display: none;
+        }
+    </style>
 </head>
 
 <body>
     <h1>pprofit!</h1>
+
+    <div>
+        <h2>New profile</h2>
+        <form id="profile-form">
+            <div>
+                <input
+                    id="url"
+                    type="text"
+                    placeholder="pprof URL (e.g. http://localhost:9494/debug/pprof)"
+                    required
+                >
+            </div>
+            <div>
+                <select id="profile-type">
+                    <option value="profile">profile</option>
+                    <option value="trace">trace</option>
+                    <option value="allocs">allocs</option>
+                    <option value="block">block</option>
+                    <option value="goroutine">goroutine</option>
+                    <option value="heap">heap</option>
+                    <option value="mutex">mutex</option>
+                    <option value="threadcreate">threadcreate</option>
+                </select>
+            </div>
+            <div class="profile-section" data-type="profile">
+                <p>Samples CPU execution for the given time.</p>
+                <div>
+                    <label for="profile-seconds">Seconds:</label>
+                    <input id="profile-seconds" type="number" value="30">
+                </div>
+            </div>
+            <div>
+                <button id="capture-button">Capture</button>
+            </div>
+        </form>
+    </div>
+
+    <div>
+        <h2>Saved profiles</h2>
+        <div id="profiles"></div>
+    </div>
+
+    <script>
+        const urlField = document.querySelector('#url');
+        const profileTypeSelect = document.querySelector('#profile-type');
+        const profilesContainer = document.querySelector('#profiles');
+
+        function showCurrentProfileSection() {
+            const selectedType = profileTypeSelect.value;
+            document.querySelectorAll('.profile-section').forEach(section => {
+                const show = selectedType === section.getAttribute('data-type');
+                section.classList.toggle('dn', !show);
+            });
+        }
+        profileTypeSelect.addEventListener('change', () => showCurrentProfileSection());
+        showCurrentProfileSection();
+
+        document.querySelector('#profile-form').addEventListener('submit', e => {
+            e.preventDefault();
+            switch (profileTypeSelect.value) {
+            case 'profile': return captureProfile();
+            }
+        });
+
+        async function captureProfile() {
+            let url = urlField.value;
+            if (!url.endsWith('/')) {
+                url += '/';
+            }
+
+            url += 'profile'
+            const params = new URLSearchParams([
+                ['seconds', document.querySelector('#profile-seconds').value],
+            ]);
+            url += '?' + params.toString();
+
+            const res = await postJSON('/save', {
+                "url": url,
+                "type": 'profile',
+            });
+            console.log(res);
+
+            openProfile(res.name);
+            refreshProfiles();
+        }
+
+        async function getJSON(url) {
+            const res = await fetch(url, { method: 'GET' });
+            if (res.status >= 400) {
+                throw new Error(`response failed with status code ${res.status}`);
+            }
+            return await res.json();
+        }
+
+        async function postJSON(url, body) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(body),
+            });
+            if (res.status >= 400) {
+                throw new Error(`response failed with status code ${res.status}`);
+            }
+            return await res.json();
+        }
+
+        function openProfile(name) {
+            return postJSON('/open', { name: name });
+        }
+
+        async function refreshProfiles() {
+            const profiles = (await getJSON('/profiles')).profiles;
+            profiles.sort((a, b) => b.createdAt - a.createdAt); // reverse sort
+
+            profilesContainer.innerHTML = '';
+            for (const profile of profiles) {
+                const container = document.createElement('div');
+                container.classList.add('profile-link');
+
+                const link = document.createElement('a');
+                link.href = '#';
+                link.innerText = profile.name;
+
+                link.addEventListener('click', e => {
+                    e.preventDefault();
+                    openProfile(profile.name);
+                });
+
+                container.appendChild(link);
+                profilesContainer.appendChild(container);
+            }
+        }
+        refreshProfiles();
+    </script>
 </body>

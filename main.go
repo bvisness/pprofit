@@ -29,6 +29,16 @@ var (
 type obj map[string]any
 type arr []any
 
+type Profile struct {
+	Name      string `json:"name"`
+	Type      string `json:"type"`
+	CreatedAt int    `json:"createdAt"`
+}
+
+type ProfileType string
+
+var ValidTypes = []ProfileType{"allocs", "block", "cmdline", "goroutine", "heap", "mutex", "profile", "threadcreate", "trace"}
+
 var client = http.Client{}
 
 func main() {
@@ -50,17 +60,13 @@ func main() {
 		w.Write(index)
 	}))
 	http.Handle("/profiles", GET(func(w http.ResponseWriter, r *http.Request) {
-		type Profile struct {
-			Name string `json:"name"`
-			Type string `json:"type"`
-		}
-
 		files := must1(ioutil.ReadDir(profilesPath))
 		profiles := []Profile{}
 		for _, f := range files {
 			profiles = append(profiles, Profile{
-				Name: f.Name(),
-				Type: strings.SplitN(f.Name(), "-", 2)[0],
+				Name:      f.Name(),
+				Type:      strings.SplitN(f.Name(), "-", 2)[0],
+				CreatedAt: int(f.ModTime().Unix()),
 			})
 		}
 		writeJSON(w, obj{
@@ -100,8 +106,10 @@ func main() {
 		out := must1(os.Create(filepath.Join(profilesPath, outname)))
 		must1(io.Copy(out, res.Body))
 
-		writeJSON(w, obj{
-			"name": outname,
+		writeJSON(w, Profile{
+			Name:      outname,
+			Type:      req.Type,
+			CreatedAt: int(time.Now().Unix()),
 		})
 	}))
 
