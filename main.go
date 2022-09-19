@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -39,6 +41,10 @@ type ProfileType string
 
 var ValidTypes = []ProfileType{"allocs", "block", "cmdline", "goroutine", "heap", "mutex", "profile", "threadcreate", "trace"}
 
+func GetProfileType(name string) string {
+	return strings.SplitN(name, "-", 2)[0]
+}
+
 var client = http.Client{}
 
 func main() {
@@ -51,6 +57,19 @@ func main() {
 	}
 	host, port := must2(getHostAndPort(hostport))
 	addr := fmt.Sprintf("%s:%d", host, port)
+
+	var backgroundProcesses []*os.Process
+	defer func() {
+		log.Println("Exiting background processes...")
+		for _, p := range backgroundProcesses {
+			log.Printf("Killing process %d\n", p.Pid)
+			err := p.Kill()
+			if err != nil {
+				log.Printf("ERROR: failed to kill PID %d, background process may still be running: %v", p.Pid, err)
+				continue
+			}
+		}
+	}()
 
 	http.Handle("/", GET(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -65,7 +84,7 @@ func main() {
 		for _, f := range files {
 			profiles = append(profiles, Profile{
 				Name:      f.Name(),
-				Type:      strings.SplitN(f.Name(), "-", 2)[0],
+				Type:      GetProfileType(f.Name()),
 				CreatedAt: int(f.ModTime().Unix()),
 			})
 		}
@@ -108,14 +127,80 @@ func main() {
 
 		writeJSON(w, Profile{
 			Name:      outname,
-			Type:      req.Type,
+			Type:      GetProfileType(outname),
 			CreatedAt: int(time.Now().Unix()),
 		})
 	}))
+	http.Handle("/open", POST(func(w http.ResponseWriter, r *http.Request) {
+		type OpenRequest struct {
+			Name string `json:"name"`
+		}
 
-	fmt.Println("Listening on", addr)
+		var req OpenRequest
+		err := readJSON(r, &req)
+		if err != nil {
+			writeError(w, err, "")
+			return
+		}
+
+		if req.Name == "" {
+			writeError(w, nil, "missing `name`")
+			return
+		}
+
+		switch GetProfileType(req.Name) {
+		default:
+			cmd := exec.Command("go", "tool", "pprof", "-http=:", filepath.Join(profilesPath, req.Name))
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			must(cmd.Start())
+			log.Printf("Starting pprof for profile %s (PID %d)\n", req.Name, cmd.Process.Pid)
+
+			done := make(chan error)
+			go func() {
+				done <- cmd.Wait()
+			}()
+
+			time.Sleep(3 * time.Second)
+			select {
+			case err := <-done:
+				log.Printf("ERROR: process failed to run: %v", err)
+				writeError(w, nil, "process failed to start")
+				return
+			default:
+				log.Printf("Process %d seems to have started up successfully.\n", cmd.Process.Pid)
+				backgroundProcesses = append(backgroundProcesses, cmd.Process)
+			}
+		}
+
+		writeJSON(w, obj{"success": true})
+	}))
+
+	srv := http.Server{
+		Addr: addr,
+	}
+
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		<-sigint
+
+		// We received an interrupt signal, shut down.
+		if err := srv.Shutdown(context.Background()); err != nil {
+			log.Printf("ERROR: failed to shut down server: %v", err)
+		}
+
+		// Second signal means force shutdown
+		<-sigint
+		log.Println("Forcibly shutting down! Background processes may not have been killed.")
+		os.Exit(1)
+	}()
+
+	log.Println("Listening on", addr)
 	go openBrowser(fmt.Sprintf("http://%s/", addr))
-	log.Fatal(http.ListenAndServe(addr, nil))
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		log.Printf("ERROR: failed to run server: %v", err)
+	}
 }
 
 func GET(f http.HandlerFunc) http.Handler {
