@@ -43,12 +43,16 @@
             transform: 40ms all ease-in-out;
         }
 
-        button:hover {
+        button:not(:disabled):hover {
             background-color: var(--button-color-hover);
         }
 
-        button:active {
+        button:not(:disabled):active {
             background-color: var(--button-color-active);
+        }
+
+        button:disabled {
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -139,6 +143,7 @@
     <script>
         const urlField = document.querySelector('#url');
         const profileTypeSelect = document.querySelector('#profile-type');
+        const captureButton = document.querySelector('#capture-button');
         const profilesContainer = document.querySelector('#profiles');
 
         urlField.value = localStorage.getItem('pprofit-url');
@@ -181,6 +186,9 @@
         });
 
         async function capture(type, params = new URLSearchParams()) {
+            captureButton.disabled = true;
+            captureButton.innerText = 'Capturing...';
+
             let url = urlField.value;
             if (!url.endsWith('/')) {
                 url += '/';
@@ -188,13 +196,19 @@
             url += type
             url += '?' + params.toString();
 
-            const res = await postJSON('/save', {
-                "url": url,
-                "type": type,
-            });
-
-            openProfile(res.name);
+            try {
+                const res = await postJSON('/save', {
+                    "url": url,
+                    "type": type,
+                });
+                openProfile(res.name);
+            } catch (e) {
+                console.error(e);
+            }
             refreshProfiles();
+
+            captureButton.disabled = false;
+            captureButton.innerText = 'Capture';
         }
 
         async function getJSON(url) {
