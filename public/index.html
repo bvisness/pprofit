@@ -27,7 +27,7 @@
             <div>
                 <select id="profile-type">
                     <option value="profile">profile</option>
-                    <option value="trace">trace</option>
+                    <option value="trace" disabled>trace</option>
                     <option value="allocs">allocs</option>
                     <option value="block">block</option>
                     <option value="goroutine">goroutine</option>
@@ -58,6 +58,11 @@
         const urlField = document.querySelector('#url');
         const profileTypeSelect = document.querySelector('#profile-type');
         const profilesContainer = document.querySelector('#profiles');
+
+        urlField.value = localStorage.getItem('pprofit-url');
+        urlField.addEventListener('change', () => {
+            localStorage.setItem('pprofit-url', urlField.value);
+        });
 
         function showCurrentProfileSection() {
             const selectedType = profileTypeSelect.value;

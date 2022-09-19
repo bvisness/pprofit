@@ -161,7 +161,7 @@ func main() {
 				done <- cmd.Wait()
 			}()
 
-			time.Sleep(3 * time.Second)
+			time.Sleep(2 * time.Second)
 			select {
 			case err := <-done:
 				log.Printf("ERROR: process failed to run: %v", err)
