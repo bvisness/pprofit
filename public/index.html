@@ -26,22 +26,57 @@
             </div>
             <div>
                 <select id="profile-type">
-                    <option value="profile">profile</option>
-                    <option value="trace" disabled>trace</option>
-                    <option value="allocs">allocs</option>
-                    <option value="block">block</option>
-                    <option value="goroutine">goroutine</option>
-                    <option value="heap">heap</option>
-                    <option value="mutex">mutex</option>
-                    <option value="threadcreate">threadcreate</option>
+                    <optgroup label="Execution">
+                        <option value="profile">profile</option>
+                        <option value="trace">trace</option>
+                    </optgroup>
+                    <optgroup label="Memory">
+                        <option value="allocs">allocs</option>
+                        <option value="heap">heap</option>
+                    </optgroup>
+                    <optgroup label="Concurrency">
+                        <option value="block">block</option>
+                        <option value="goroutine">goroutine</option>
+                        <option value="mutex">mutex</option>
+                        <option value="threadcreate">threadcreate</option>
+                    </optgroup>
                 </select>
             </div>
             <div class="profile-section" data-type="profile">
-                <p>Samples CPU execution for the given time.</p>
+                <p>General CPU profile. Samples CPU execution for the given time.</p>
                 <div>
                     <label for="profile-seconds">Seconds:</label>
                     <input id="profile-seconds" type="number" value="30">
                 </div>
+            </div>
+            <div class="profile-section" data-type="trace">
+                <p>Traces program execution for the given time.</p>
+                <div>
+                    <label for="trace-seconds">Seconds:</label>
+                    <input id="trace-seconds" type="number" value="5">
+                </div>
+            </div>
+            <div class="profile-section" data-type="allocs">
+                <p>A sampling of all past memory allocations.</p>
+            </div>
+            <div class="profile-section" data-type="block">
+                <p>Stack traces that led to blocking on synchronization primitives.</p>
+            </div>
+            <div class="profile-section" data-type="goroutine">
+                <p>Stack traces of all current goroutines.</p>
+            </div>
+            <div class="profile-section" data-type="heap">
+                <p>Memory allocations that are still around.</p>
+                <div>
+                    <label for="heap-gc">Run garbage collector first?</label>
+                    <input id="heap-gc" type="checkbox" checked>
+                </div>
+            </div>
+            <div class="profile-section" data-type="mutex">
+                <p>Stack traces of holders of contended mutexes.</p>
+            </div>
+            <div class="profile-section" data-type="threadcreate">
+                <p>Stack traces that led to the creation of new OS threads.</p>
             </div>
             <div>
                 <button id="capture-button">Capture</button>
@@ -77,27 +112,39 @@
         document.querySelector('#profile-form').addEventListener('submit', e => {
             e.preventDefault();
             switch (profileTypeSelect.value) {
-            case 'profile': return captureProfile();
+                case 'profile': {
+                    capture('profile', new URLSearchParams([
+                        ['seconds', document.querySelector('#profile-seconds').value],
+                    ]));
+                } break;
+                case 'trace': {
+                    capture('trace', new URLSearchParams([
+                        ['seconds', document.querySelector('#trace-seconds').value],
+                    ]));
+                } break;
+                case 'heap': {
+                    capture('heap', new URLSearchParams([
+                        ['gc', document.querySelector('#heap-gc').checked],
+                    ]));
+                } break;
+                default: {
+                    capture(profileTypeSelect.value);
+                } break;
             }
         });
 
-        async function captureProfile() {
+        async function capture(type, params = new URLSearchParams()) {
             let url = urlField.value;
             if (!url.endsWith('/')) {
                 url += '/';
             }
-
-            url += 'profile'
-            const params = new URLSearchParams([
-                ['seconds', document.querySelector('#profile-seconds').value],
-            ]);
+            url += type
             url += '?' + params.toString();
 
             const res = await postJSON('/save', {
                 "url": url,
-                "type": 'profile',
+                "type": type,
             });
-            console.log(res);
 
             openProfile(res.name);
             refreshProfiles();

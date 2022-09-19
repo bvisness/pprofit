@@ -148,29 +148,33 @@ func main() {
 			return
 		}
 
+		var cmd *exec.Cmd
 		switch GetProfileType(req.Name) {
+		case "trace":
+			cmd = exec.Command("go", "tool", "trace", filepath.Join(profilesPath, req.Name))
 		default:
-			cmd := exec.Command("go", "tool", "pprof", "-http=:", filepath.Join(profilesPath, req.Name))
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			must(cmd.Start())
-			log.Printf("Starting pprof for profile %s (PID %d)\n", req.Name, cmd.Process.Pid)
+			cmd = exec.Command("go", "tool", "pprof", "-http=:", filepath.Join(profilesPath, req.Name))
+		}
 
-			done := make(chan error)
-			go func() {
-				done <- cmd.Wait()
-			}()
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		must(cmd.Start())
+		log.Printf("Starting pprof for profile %s (PID %d)\n", req.Name, cmd.Process.Pid)
 
-			time.Sleep(2 * time.Second)
-			select {
-			case err := <-done:
-				log.Printf("ERROR: process failed to run: %v", err)
-				writeError(w, nil, "process failed to start")
-				return
-			default:
-				log.Printf("Process %d seems to have started up successfully.\n", cmd.Process.Pid)
-				backgroundProcesses = append(backgroundProcesses, cmd.Process)
-			}
+		done := make(chan error)
+		go func() {
+			done <- cmd.Wait()
+		}()
+
+		time.Sleep(2 * time.Second)
+		select {
+		case err := <-done:
+			log.Printf("ERROR: process failed to run: %v", err)
+			writeError(w, nil, "process failed to start")
+			return
+		default:
+			log.Printf("Process %d seems to have started up successfully.\n", cmd.Process.Pid)
+			backgroundProcesses = append(backgroundProcesses, cmd.Process)
 		}
 
 		writeJSON(w, obj{"success": true})
