@@ -23,6 +23,9 @@ import (
 //go:embed public/index.html
 var index []byte
 
+//go:embed public/tachyons.css
+var tachyons []byte
+
 var (
 	pprofitPath  = filepath.Join(must1(os.UserHomeDir()), ".pprofit")
 	profilesPath = filepath.Join(pprofitPath, "profiles")
@@ -36,10 +39,6 @@ type Profile struct {
 	Type      string `json:"type"`
 	CreatedAt int    `json:"createdAt"`
 }
-
-type ProfileType string
-
-var ValidTypes = []ProfileType{"allocs", "block", "cmdline", "goroutine", "heap", "mutex", "profile", "threadcreate", "trace"}
 
 func GetProfileType(name string) string {
 	return strings.SplitN(name, "-", 2)[0]
@@ -78,6 +77,11 @@ func main() {
 		}
 		w.Write(index)
 	}))
+	http.Handle("/tachyons.css", GET(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "text/css")
+		w.Write(tachyons)
+	}))
+
 	http.Handle("/profiles", GET(func(w http.ResponseWriter, r *http.Request) {
 		files := must1(ioutil.ReadDir(profilesPath))
 		profiles := []Profile{}

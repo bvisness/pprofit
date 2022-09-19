@@ -3,90 +3,137 @@
 <head>
     <title>pprofit!</title>
 
+    <link rel="stylesheet" href="tachyons.css">
+
     <style>
-        .dn {
-            display: none;
+        :root {
+            --body-background: hsl(213.3, 10%, 94%);
+            --border-dim: rgba(0, 0, 0, 0.2);
+            --button-color: #3c7bbd;
+            --button-color-hover: #4b87c6;
+            --button-color-active: #3f7fc1;
+            --card-background: white;
+        }
+
+        body {
+            font-family: -apple-system,BlinkMacSystemFont,segoe ui,Helvetica,Arial,sans-serif,apple color emoji,segoe ui emoji,segoe ui symbol;
+            background-color: var(--body-background);
+        }
+
+        .w6 {
+            width: 32rem;
+        }
+
+        .card {
+            background-color: var(--card-background);
+            box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.15);
+        }
+
+        .sub-card {
+            border-top: 1px solid var(--border-dim);
+            border-bottom: 1px solid var(--border-dim);
+        }
+
+        button {
+            background-color: var(--button-color);
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            transform: 40ms all ease-in-out;
+        }
+
+        button:hover {
+            background-color: var(--button-color-hover);
+        }
+
+        button:active {
+            background-color: var(--button-color-active);
         }
     </style>
 </head>
 
 <body>
-    <h1>pprofit!</h1>
-
-    <div>
-        <h2>New profile</h2>
-        <form id="profile-form">
-            <div>
-                <input
-                    id="url"
-                    type="text"
-                    placeholder="pprof URL (e.g. http://localhost:9494/debug/pprof)"
-                    required
-                >
-            </div>
-            <div>
-                <select id="profile-type">
-                    <optgroup label="Execution">
-                        <option value="profile">profile</option>
-                        <option value="trace">trace</option>
-                    </optgroup>
-                    <optgroup label="Memory">
-                        <option value="allocs">allocs</option>
-                        <option value="heap">heap</option>
-                    </optgroup>
-                    <optgroup label="Concurrency">
-                        <option value="block">block</option>
-                        <option value="goroutine">goroutine</option>
-                        <option value="mutex">mutex</option>
-                        <option value="threadcreate">threadcreate</option>
-                    </optgroup>
-                </select>
-            </div>
-            <div class="profile-section" data-type="profile">
-                <p>General CPU profile. Samples CPU execution for the given time.</p>
+    <div class="pa3">
+        <h1 class="mt0">pprofit!</h1>
+        <div class="w6">
+            <h2>New profile</h2>
+            <form id="profile-form" class="card pa3 br3">
                 <div>
-                    <label for="profile-seconds">Seconds:</label>
-                    <input id="profile-seconds" type="number" value="30">
+                    <input
+                        id="url"
+                        class="w-100"
+                        type="text"
+                        placeholder="pprof URL (e.g. http://localhost:9494/debug/pprof)"
+                        required
+                    >
                 </div>
-            </div>
-            <div class="profile-section" data-type="trace">
-                <p>Traces program execution for the given time.</p>
-                <div>
-                    <label for="trace-seconds">Seconds:</label>
-                    <input id="trace-seconds" type="number" value="5">
+                <div class="mv2">
+                    <select id="profile-type" class="w-100">
+                        <optgroup label="Execution">
+                            <option value="profile">profile</option>
+                            <option value="trace">trace</option>
+                        </optgroup>
+                        <optgroup label="Memory">
+                            <option value="allocs">allocs</option>
+                            <option value="heap">heap</option>
+                        </optgroup>
+                        <optgroup label="Concurrency">
+                            <option value="block">block</option>
+                            <option value="goroutine">goroutine</option>
+                            <option value="mutex">mutex</option>
+                            <option value="threadcreate">threadcreate</option>
+                        </optgroup>
+                    </select>
                 </div>
-            </div>
-            <div class="profile-section" data-type="allocs">
-                <p>A sampling of all past memory allocations.</p>
-            </div>
-            <div class="profile-section" data-type="block">
-                <p>Stack traces that led to blocking on synchronization primitives.</p>
-            </div>
-            <div class="profile-section" data-type="goroutine">
-                <p>Stack traces of all current goroutines.</p>
-            </div>
-            <div class="profile-section" data-type="heap">
-                <p>Memory allocations that are still around.</p>
-                <div>
-                    <label for="heap-gc">Run garbage collector first?</label>
-                    <input id="heap-gc" type="checkbox" checked>
+                <div class="sub-card mv3 pv3 ph2">
+                    <div class="profile-section" data-type="profile">
+                        <div>General CPU profile. Samples CPU execution for the given time.</div>
+                        <div class="mt2">
+                            <label for="profile-seconds">Seconds:</label>
+                            <input id="profile-seconds" type="number" value="30">
+                        </div>
+                    </div>
+                    <div class="profile-section" data-type="trace">
+                        <div>Traces program execution for the given time.</div>
+                        <div class="mt2">
+                            <label for="trace-seconds">Seconds:</label>
+                            <input id="trace-seconds" type="number" value="5">
+                        </div>
+                    </div>
+                    <div class="profile-section" data-type="allocs">
+                        <div>A sampling of all past memory allocations.</div>
+                    </div>
+                    <div class="profile-section" data-type="block">
+                        <div>Stack traces that led to blocking on synchronization primitives.</div>
+                    </div>
+                    <div class="profile-section" data-type="goroutine">
+                        <div>Stack traces of all current goroutines.</div>
+                    </div>
+                    <div class="profile-section" data-type="heap">
+                        <div>Memory allocations that are still around.</div>
+                        <div class="mt2">
+                            <label for="heap-gc">Run garbage collector first?</label>
+                            <input id="heap-gc" type="checkbox" checked>
+                        </div>
+                    </div>
+                    <div class="profile-section" data-type="mutex">
+                        <div>Stack traces of holders of contended mutexes.</div>
+                    </div>
+                    <div class="profile-section" data-type="threadcreate">
+                        <div>Stack traces that led to the creation of new OS threads.</div>
+                    </div>
                 </div>
-            </div>
-            <div class="profile-section" data-type="mutex">
-                <p>Stack traces of holders of contended mutexes.</p>
-            </div>
-            <div class="profile-section" data-type="threadcreate">
-                <p>Stack traces that led to the creation of new OS threads.</p>
-            </div>
+                <div class="mt2">
+                    <button id="capture-button" class="w-100 pa2">Capture</button>
+                </div>
+            </form>
+            
             <div>
-                <button id="capture-button">Capture</button>
+                <h2>Saved profiles</h2>
+                <div id="profiles"></div>
             </div>
-        </form>
-    </div>
-
-    <div>
-        <h2>Saved profiles</h2>
-        <div id="profiles"></div>
+        </div>
     </div>
 
     <script>
@@ -188,6 +235,7 @@
                 const link = document.createElement('a');
                 link.href = '#';
                 link.innerText = profile.name;
+                link.classList.add('db', 'card', 'br2', 'pv2', 'ph3', 'mb2');
 
                 link.addEventListener('click', e => {
                     e.preventDefault();
