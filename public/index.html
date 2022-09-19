@@ -13,11 +13,28 @@
             --button-color-hover: #4b87c6;
             --button-color-active: #3f7fc1;
             --card-background: white;
+            --text-color: black;
+
+            color-scheme: light dark;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --body-background: #0c1920;
+                --border-dim: rgba(127, 163, 202, 0.3);
+                --card-background: #1f2e3e;
+                --text-color: white;
+            }
+
+            a {
+                color: white;
+            }
         }
 
         body {
             font-family: -apple-system,BlinkMacSystemFont,segoe ui,Helvetica,Arial,sans-serif,apple color emoji,segoe ui emoji,segoe ui symbol;
             background-color: var(--body-background);
+            color: var(--text-color);
         }
 
         .w6 {
